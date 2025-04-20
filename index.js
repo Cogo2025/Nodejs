@@ -1,5 +1,6 @@
 const express = require("express");
 const https = require("https");
+const http = require("http");
 const fs = require("fs");
 const { Server } = require("socket.io");
 const dotenv = require("dotenv");
@@ -8,18 +9,31 @@ const connectDB = require("./src/config/db");
 
 dotenv.config();
 const app = express();
-app.use(cors({ origin: "*" })); 
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-// Load SSL Certificates
-const sslOptions = {
-  key: fs.readFileSync("./ssl/key.pem"),
-  cert: fs.readFileSync("./ssl/cert.pem"),
-};
+// Socket.io and server setup
+let server;
+let io;
 
-// Create HTTPS Server
-const server = https.createServer(sslOptions, app);
-const io = new Server(server, {
+const PORT = process.env.PORT || 5000;
+const HOST = "0.0.0.0";
+
+// Check if running locally (NODE_ENV !== 'production') and use HTTPS
+if (process.env.NODE_ENV !== "production") {
+  const sslOptions = {
+    key: fs.readFileSync("./ssl/key.pem"),
+    cert: fs.readFileSync("./ssl/cert.pem"),
+  };
+
+  server = https.createServer(sslOptions, app);
+  console.log("🔐 Using HTTPS in development");
+} else {
+  server = http.createServer(app);
+  console.log("🌐 Using HTTP in production (Render provides HTTPS)");
+}
+
+io = new Server(server, {
   cors: { origin: "*" },
 });
 
@@ -41,11 +55,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    onlineUsers.forEach((value, key) => {
+    for (let [key, value] of onlineUsers.entries()) {
       if (value === socket.id) {
         onlineUsers.delete(key);
       }
-    });
+    }
     console.log("User disconnected:", socket.id);
   });
 });
@@ -55,13 +69,6 @@ connectDB();
 app.get("/", (req, res) => {
   res.send("API is running securely...");
 });
-console.log("Registering /api/auth routes...");
-app._router.stack.forEach((r) => {
-  if (r.route && r.route.path) {
-    console.log(`📌 Registered route: ${r.route.path}`);
-  }
-});
-
 
 app.use("/api/auth", require("./src/routes/authRoutes"));
 app.use("/api/user", require("./src/routes/userRoutes"));
@@ -72,10 +79,6 @@ app.use("/api/notifications", require("./src/routes/notificationRoutes"));
 app.use("/api/likes", require("./src/routes/likeRoutes"));
 app.use("/api/files", require("./src/routes/fileRoutes"));
 
-
-
-
-// Start Secure Server
-const PORT = process.env.PORT || 5000;
-const HOST = '0.0.0.0';
-server.listen(PORT,HOST, () => console.log(`Secure Server running on https://localhost:${PORT}`));
+server.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running on ${process.env.NODE_ENV === "production" ? "http" : "https"}://${HOST}:${PORT}`);
+});
