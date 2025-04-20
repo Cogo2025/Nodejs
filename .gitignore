@@ -1,0 +1,47 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+*.log
+debug.log
+error.log
+
+# Environment variables (Sensitive Data)
+.env
+.env.*
+!.env.example
+
+# SSL Certificates (Sensitive)
+ssl/
+ssl/*
+ssl/*.pem
+
+# Firebase Admin Credentials (if using manually, else remove)
+firebaseAdmin.json
+
+# Build files
+dist/
+build/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.vscode/
+.idea/
+*.iml
+
+# Miscellaneous
+*.bak
+*.orig
+
+# Ignore Temporary files
+tmp/
+temp/
+*.swp
+*.swo
